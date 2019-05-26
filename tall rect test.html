@@ -1,0 +1,298 @@
+<!doctype html>
+<html>
+    <head>
+      <meta charset="utf-8">
+      <title>Tall Rectangle Test</title>
+      <script type="text/javascript" src="geometry.js"></script>
+      <script type="text/javascript">
+        const vp = new Viewport(0, 0, 0);
+        
+        document.addEventListener("DOMContentLoaded", function() {
+            const rect = [
+                /* Front */
+                [   0,   0, 0,
+                  100,   0, 0,
+                  100, 100, 0,
+                    0, 100, 0
+                ],
+                /* Back */
+                [   0,   0, 100,
+                  100,   0, 100,
+                  100, 100, 100,
+                    0, 100, 100
+                ],
+                <!-- /* Bottom */ -->
+                [   0, 0, 0,
+                    0, 0, 100,
+                  100, 0, 100,
+                  100, 0, 0
+                ],
+                /* Top */
+                [   0, 100, 0,
+                    0, 100, 100,
+                  100, 100, 100,
+                  100, 100, 0
+                ],
+                /* Left */
+                [ 0,   0, 0,
+                  0,   0, 100,
+                  0, 100, 100,
+                  0, 100, 0
+                ],
+                /* Right */
+                [ 100,   0, 0,
+                  100,   0, 100,
+                  100, 100, 100,
+                  100, 100, 0
+                ],
+                [ 100, 100, 0,
+                   50, 150, 0,
+                    0, 100, 0
+                ]
+            ];
+            
+            const canvas = document.getElementById("js-canvas");
+            const ctx = canvas.getContext("2d");
+
+            canvas.width = 1800;
+            canvas.height = 1024;
+            
+            vp.height = canvas.height;
+            vp.width  = canvas.width;
+            
+            vp.x = 50;
+            vp.y = 50;
+            vp.z = 200;
+            
+            const xo_elm = document.getElementById("xoffset");
+            const xo_label_elm = document.getElementById("xo_l");
+            xo_elm.dataset.coord = "x";
+            xo_elm.value = vp.x;
+
+            const yo_elm = document.getElementById("yoffset");
+            const yo_label_elm = document.getElementById("yo_l");
+            yo_elm.dataset.coord = "y";
+            yo_elm.value = vp.y;
+
+            const zo_elm = document.getElementById("zoffset");
+            const zo_label_elm = document.getElementById("zo_l");
+            zo_elm.dataset.coord = "z";
+            zo_elm.value = vp.z;
+
+            const fl_elm = document.getElementById("fLen");
+            const fl_label_elm = document.getElementById("fLen_l");
+            fl_elm.dataset.coord = "flen";
+
+            const xtrsl_elm = document.getElementById("xtrsl");
+            const xtrsl_label_elm = document.getElementById("xtrsl_l");
+            let xtrsl = canvas.width / 2;
+            xtrsl_elm.dataset.coord = "xtrsl";
+            xtrsl_elm.setAttribute("min", -canvas.width);
+            xtrsl_elm.setAttribute("max", canvas.width);
+            xtrsl_elm.value = xtrsl;
+
+            const ytrsl_elm = document.getElementById("ytrsl");
+            const ytrsl_label_elm = document.getElementById("ytrsl_l");
+            let ytrsl = -canvas.height / 2;
+            ytrsl_elm.dataset.coord = "ytrsl";
+            ytrsl_elm.setAttribute("min", -canvas.height);
+            ytrsl_elm.setAttribute("max", canvas.height);
+            ytrsl_elm.value = ytrsl;
+
+            const fov_elm = document.getElementById("fov");
+            const fov_label_elm = document.getElementById("fov_l");
+            fov_elm.dataset.coord = "fov";
+            fov_elm.value = vp.FOVdeg.h;
+
+            function offsetHandler(evt) {
+                if (isNaN(evt.target.value|0))
+                    return;
+
+                let hasChanged = false;
+                const nval = parseFloat(evt.target.value);
+
+                switch(this.dataset.coord) {
+                case 'x':
+                    if (vp.x !== nval)
+                        hasChanged = true;
+
+                    vp.x = nval;
+                    break;
+                case 'y':
+                    if (vp.y !== nval)
+                        hasChanged = true;
+
+                    vp.y = nval;
+                    break;
+                case 'z':
+                    if (vp.z !== nval)
+                        hasChanged = true;
+
+                    vp.z = nval;
+                    break;
+                case 'flen':
+                    if (vp.focalLength !== nval)
+                        hasChanged = true;
+
+                    vp.focalLength = nval;
+                    break;
+                case 'xtrsl':
+                    if (xtrsl !== nval)
+                        hasChanged = true;
+
+                    xtrsl = nval;
+                    break;
+                case 'ytrsl':
+                    if (ytrsl !== nval)
+                        hasChanged = true;
+
+                    ytrsl = nval;
+                    break;
+                case 'fov':
+                    if (vp.FOVdeg.h !== nval)
+                        hasChanged = true;
+
+                    vp.setFOV(nval);
+                    break;
+                }
+
+                if (hasChanged)
+                    draw();
+            }
+
+            xo_elm.addEventListener("input", offsetHandler);
+            yo_elm.addEventListener("input", offsetHandler);
+            zo_elm.addEventListener("input", offsetHandler);
+            fl_elm.addEventListener("input", offsetHandler);
+            xtrsl_elm.addEventListener("input", offsetHandler);
+            ytrsl_elm.addEventListener("input", offsetHandler);
+            fov_elm.addEventListener("input", offsetHandler);
+
+            function draw() {
+                xo_label_elm.innerHTML = "Camera Left/Right: " + vp.x;
+                yo_label_elm.innerHTML = "Camera Up/Down: " + vp.y;
+                zo_label_elm.innerHTML = "Camera Backward/Forward: " + vp.z;
+                fl_label_elm.innerHTML = "Focal Length: " + vp.focalLength;
+                xtrsl_label_elm.innerHTML = "X Translation: " + xtrsl + " px";
+                ytrsl_label_elm.innerHTML = "Y Translation: " + ytrsl + " px";
+                fov_label_elm.innerHTML = "Field of View: " + (vp.FOVdeg.h|0) + "°";
+
+                ctx.fillStyle = "#222";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                ctx.save();
+                ctx.translate(xtrsl, ytrsl);
+                ctx.fillStyle = "#f00";
+                ctx.beginPath();
+                ctx.arc((vp.x - (2 + vp.z / 1024) * 2), vp.y, (2 + vp.z / 1024) * 2, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.closePath();
+                ctx.restore();
+
+                ctx.save();
+                ctx.translate(xtrsl, ytrsl);
+                for (let i = 0; i < rect.length; i++) {
+                    ctx.beginPath();
+
+                    for (let j = 0, l = rect[i].length; j < l + 3; j += 3) {
+                        const p1 = vp.transformPoint(rect[i][j%l], rect[i][j%l + 1], -rect[i][j%l + 2]);
+
+                        ctx.lineTo(...p1);
+                    }
+
+                    <!-- ctx.fillStyle = `rgb(${(i / (rect.length - 1)) * 255}, ${amean * 255}, ${amean * 255})`; -->
+                    ctx.fillStyle = "rgba(255,255,255,.8)";
+                    ctx.strokeStyle = "#00f";
+                    ctx.stroke();
+                    ctx.fill();
+                    ctx.closePath();
+                }
+
+                ctx.restore();
+            }
+            
+            draw();
+        });
+      </script>
+      <style>
+        body {
+            background: #555;
+            display: flex;
+            justify-content: center;
+            overflow-y: hidden;
+        }
+        
+        canvas {
+            background: #fff;
+            grid-column: 3;
+            grid-row: 1;
+        }
+        
+        main {
+            position: absolute;
+            top: 16px;
+            width: 100%;
+            height: 1024px;
+            display: grid;
+            grid-template-columns: 500px 16px 1800px;
+            grid-template-rows: 100%;
+            justify-items: center;
+        }
+        
+        #adj {
+            width: 100%;
+            display: flex;
+            justify-content: space-evenly;
+            flex-direction: column;
+            grid-column: 1;
+            grid-row: 1;
+        }
+        
+        #adj > div {
+            background: #aaa;
+            padding: 16px;
+            display: flex;
+            justify-items: center;
+            align-items: stretch;
+            text-align: center;
+            flex-direction: column;
+            flex-basis: -moz-available;
+        }
+      </style>
+    </head>
+    <body>
+        <main>
+        <canvas id="js-canvas"></canvas>
+        <div id="adj">
+            <div>
+                <label id="xo_l" for="xoffset">Camera Left/Right: </label>
+                <input id="xoffset" type="range" min="-1800" max="1800" step="0.1"></input>
+            </div>
+            <div>
+                <label id="yo_l" for="yoffset">Camera Up/Down: </label>
+                <input id="yoffset" type="range" min="-1024" max="1024" step="0.1"></input>
+            </div>
+            <div>
+                <label id="zo_l" for="zoffset">Camera Forward/Backward: </label>
+                <input id="zoffset" type="range" min="-2000" max="2000" step="1"></input>
+            </div>
+            <div>
+                <label id="fLen_l" for="fLen">Focal Length: </label>
+                <input id="fLen" type="range" min="0" max="64" step="0.25"></input>
+            </div>
+            <div>
+                <label id="xtrsl_l" for="xtrsl">X Translation: </label>
+                <input id="xtrsl" type="range" min="0" max="64" step="0.25"></input>
+            </div>
+            <div>
+                <label id="ytrsl_l" for="ytrsl">Y Translation: </label>
+                <input id="ytrsl" type="range" min="0" max="64" step="0.25"></input>
+            </div>
+            <div>
+                <label id="fov_l" for="fov">Field of View: </label>
+                <input id="fov" type="range" min="0" max="360" step="1"></input>
+            </div>
+        </div>
+        </main>
+    </body>
+</html>
